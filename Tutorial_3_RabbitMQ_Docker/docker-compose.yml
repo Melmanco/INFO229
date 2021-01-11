@@ -1,0 +1,73 @@
+version: '3.6'
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      # Standard AMQP protocol port
+      - 5672:5672
+      # HTTP management UI
+      - 15672:15672
+    networks:
+      - network
+    container_name: rabbitmq
+    restart: 'always'
+    
+  events:
+    build:
+      context: ./events
+    container_name: nestor_events
+    networks:
+      - network
+    environemnt:
+      - RABBITMQ_HOST=rabbitmq
+    depends_on:
+      - rabbitmq
+  
+  reader:
+    build:
+      context: ./reader
+    container_name: nestor_slack_reader
+    networks:
+      - network
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+    depends_on:
+      - rabbitmq
+    ports:
+      - 3000:3000
+
+  translate_consumer:
+    build:
+      context: ./translate_consumer
+    container_name: translate_consumer
+    networks:
+      - network
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+    depends_on:
+      - rabbitmq
+
+    wikipedia_consumer:
+      build:
+        context: ./wikipedia_consumer
+      container_name: wikipedia_consumer
+      networks:
+        - network
+      environment:
+        - RABBITMQ_HOST=rabbitmq
+      depends_on:
+        - rabbitmq
+
+    writer:
+      build:
+        context: ./writer
+      container_name: nestor_slack_writer
+      networks:
+        - network
+      environment:
+        - RABBITMQ_HOST=rabbitmq
+      depends_on:
+        - rabbitmq
+        
+networks:
+  network: ()
